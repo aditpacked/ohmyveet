@@ -117,7 +117,7 @@ LinkBtn.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 Instance.new("UICorner", LinkBtn).CornerRadius = UDim.new(0, 6)
 
 LinkBtn.MouseButton1Click:Connect(function()
-    setclipboard("https://sfl.gl/5Gqc")
+    setclipboard("https://sfl.gl/uOEta46")
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "✅ Link dicopy",
         Text = "Silakan paste di browser",
