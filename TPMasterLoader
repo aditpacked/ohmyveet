@@ -1,5 +1,5 @@
 -- // Konfigurasi Key
-local REQUIRED_KEY = "969"
+local REQUIRED_KEY = "berhentiberharap"
 
 -- // Services
 local Players = game:GetService("Players")
