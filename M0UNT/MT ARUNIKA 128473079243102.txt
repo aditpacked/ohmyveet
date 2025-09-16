@@ -1,126 +1,261 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local leaderstats = LocalPlayer:WaitForChild("leaderstats")
-local checkpointStat = leaderstats:WaitForChild("Checkpoint")
-local humanoid = LocalPlayer.Character:WaitForChild("Humanoid")
 
-local checkpoints = {
-    [0] = {"CP 1", CFrame.new(135.679993, 144.275955, -174.722336, -0.530386448, 0, -0.847755969, 0, 1, 0, 0.847755969, 0, -0.530386448)},
-    [1] = {"CP 2", CFrame.new(326.375885, 93.028038, -433.956573, 0.76137346, 0, 0.648313582, 0, 1, 0, -0.648313582, 0, 0.76137346)},
-    [2] = {"CP 3", CFrame.new(476.093353, 172.284851, -940.202637, 1, 0, 0, 0, 1, 0, 0, 0, 1)},
-    [3] = {"CP 4", CFrame.new(930.097229, 136.382202, -626.028931, 0.647055387, 0, -0.762443006, 0, 1, 0, 0.762443006, 0, 0.647055387)},
-    [4] = {"CP 5", CFrame.new(923.416199, 103.369003, 279.597198, 0.812661052, 0, -0.582736731, 0, 1, 0, 0.582736731, 0, 0.812661052)},
-    ["FINISH"] = {"FINISH", CFrame.new(246.178497, 321.047058, 704.100281, 1, 0, 0, 0, 1, 0, 0, 0, 1)}
-}
+local targetCF = CFrame.new(
+    730.740051, 130.101242, -179.358292,
+    0.323141426, 3.42042483e-08, -0.946350694,
+    3.84099401e-08, 1, 4.92587908e-08,
+    0.946350694, -5.22668309e-08, 0.323141426
+)
+local warpDuration = 3
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "WarpToggleGUI"
-gui.ResetOnSpawn = false
-gui.Parent = game.CoreGui
+local farming = false
+local noclipConn
+local startTime = 0
 
-local btn = Instance.new("TextButton", gui)
-btn.Size = UDim2.new(0, 120, 0, 40)
-btn.Position = UDim2.new(0.5, -60, 0.85, 0)
-btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-btn.BackgroundTransparency = 0.2
-btn.TextColor3 = Color3.fromRGB(0, 255, 0)
-btn.Font = Enum.Font.GothamBold
-btn.TextSize = 20
-btn.Text = "ENABLE"
-btn.AutoButtonColor = true
+local function formatTime(sec)
+    local h = math.floor(sec / 3600)
+    local m = math.floor((sec % 3600) / 60)
+    local s = sec % 60
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
 
-local UICornerBtn = Instance.new("UICorner", btn)
-UICornerBtn.CornerRadius = UDim.new(0, 8)
+local function getHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
 
-local wm = Instance.new("TextLabel", gui)
-wm.Size = UDim2.new(0, 400, 0, 80)
-wm.Position = UDim2.new(0.5, -200, 0.5, -40)
-wm.BackgroundTransparency = 1
-wm.TextColor3 = Color3.fromRGB(255, 255, 255)
-wm.TextTransparency = 1
-wm.Font = Enum.Font.GothamBlack
-wm.TextSize = 36
-wm.TextStrokeTransparency = 0.2
-wm.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-wm.Text = "CREATED BY\n- VEET -"
-wm.Visible = true
-
-local isRunning = false
-
-local function smoothWarp(cf)
-    local hrp = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-    local tween = TweenService:Create(hrp, TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = cf})
+local function smoothWarp(cf, duration)
+    local hrp = getHRP()
+    local tweenInfo = TweenInfo.new(duration or 2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = cf})
     tween:Play()
     tween.Completed:Wait()
 end
 
-local function doJump()
-    if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+local function fireTouch(part)
+    local hrp = getHRP()
+    if part and part:IsA("BasePart") then
+        firetouchinterest(hrp, part, 0)
+        task.wait(0.1)
+        firetouchinterest(hrp, part, 1)
+    end
 end
 
-local function makeSeatsGhost()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-            obj.CanTouch = false
-            obj.CanCollide = false
+local function triggerCheckpoint(i, cpStat, checkpointsFolder)
+    local cp = checkpointsFolder:FindFirstChild("Checkpoint"..i)
+    if not cp then return end
+    local success = false
+    while not success and farming do
+        local before = cpStat.Value
+        fireTouch(cp)
+        local timeout, t = 5, 0
+        while cpStat.Value == before and t < timeout do
+            task.wait(0.2)
+            t += 0.2
         end
-    end
-end
-makeSeatsGhost()
-workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-        obj.CanTouch = false
-        obj.CanCollide = false
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if isRunning then
-            local cpIndex = checkpointStat.Value
-            if cpIndex <= 4 then
-                local name, cf = checkpoints[cpIndex][1], checkpoints[cpIndex][2]
-                local last = cpIndex
-                local tries = 0
-                repeat
-                    tries += 1
-                    smoothWarp(cf)
-                    task.wait(0.5)
-                    if checkpointStat.Value == last then
-                        doJump()
-                    end
-                until checkpointStat.Value > last or not isRunning
-            elseif cpIndex == 5 then
-                local name, cf = checkpoints["FINISH"][1], checkpoints["FINISH"][2]
-                smoothWarp(cf)
-                task.wait(3)
-                humanoid.Health = 0
-                repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-                humanoid = LocalPlayer.Character:WaitForChild("Humanoid")
-                checkpointStat = leaderstats:WaitForChild("Checkpoint")
-                for i = 8,1,-1 do
-                    if not isRunning then break end
-                    task.wait(1)
-                end
-            else
-                task.wait(1)
-            end
+        if cpStat.Value >= i then
+            success = true
         else
             task.wait(0.5)
         end
     end
+end
+
+local function triggerCheckpoints()
+    local leaderstats = LocalPlayer:WaitForChild("leaderstats")
+    local cpStat = leaderstats:WaitForChild("Checkpoint")
+    local checkpointsFolder = workspace:WaitForChild("Checkpoints")
+    for i = 1, 5 do
+        if cpStat.Value < i then
+            triggerCheckpoint(i, cpStat, checkpointsFolder)
+        end
+    end
+end
+
+local function triggerSummit()
+    local leaderstats = LocalPlayer:WaitForChild("leaderstats")
+    local summitStat = leaderstats:WaitForChild("Summit")
+    local summit = workspace:FindFirstChild("SummitTrigger")
+    if not summit then return false end
+    local success = false
+    while not success and farming do
+        local before = summitStat.Value
+        fireTouch(summit)
+        local timeout, t = 5, 0
+        while summitStat.Value == before and t < timeout do
+            task.wait(0.2)
+            t += 0.2
+        end
+        if summitStat.Value > before then
+            success = true
+        else
+            task.wait(0.5)
+        end
+    end
+    return success
+end
+
+local function respawnPlayer(resetTimer)
+    task.wait(1)
+    local char = LocalPlayer.Character
+    if char then char:BreakJoints() end
+    resetTimer()
+end
+
+local function enableNoClip()
+    noclipConn = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+end
+local function disableNoClip()
+    if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+end
+
+local function startFarming(updateProgress, updateTimer, resetTimer, blackScreen)
+    farming = true
+    enableNoClip()
+    blackScreen.Visible = true
+    resetTimer()
+    while farming do
+        smoothWarp(targetCF, warpDuration)
+        task.wait(0.5)
+        triggerCheckpoints()
+        task.wait(0.5)
+        local summitOK = triggerSummit()
+        if summitOK then
+            respawnPlayer(resetTimer)
+        end
+        updateProgress()
+        task.wait(5)
+    end
+    disableNoClip()
+    blackScreen.Visible = false
+end
+local function stopFarming(blackScreen, resetTimer)
+    farming = false
+    disableNoClip()
+    blackScreen.Visible = false
+    resetTimer()
+end
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "FarmingGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+
+local BlackScreen = Instance.new("Frame", ScreenGui)
+BlackScreen.Size = UDim2.new(1, 0, 1, 0)
+BlackScreen.Position = UDim2.new(0, 0, 0, 0)
+BlackScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+BlackScreen.Visible = false
+BlackScreen.ZIndex = 9999
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 120)
+Frame.Position = UDim2.new(0.5, -100, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.Active = true
+Frame.Draggable = true
+Frame.ZIndex = 10000
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+local Button = Instance.new("TextButton", Frame)
+Button.Size = UDim2.new(1, -20, 0, 30)
+Button.Position = UDim2.new(0, 10, 0, 10)
+Button.Text = "ENABLE"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Button.Font = Enum.Font.GothamBold
+Button.TextSize = 18
+Button.ZIndex = 10000
+Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
+
+local ProgressLabel = Instance.new("TextLabel", Frame)
+ProgressLabel.Size = UDim2.new(1, -20, 0, 20)
+ProgressLabel.Position = UDim2.new(0, 10, 0, 45)
+ProgressLabel.Text = "CP: 0/5 | Summit: 0"
+ProgressLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+ProgressLabel.BackgroundTransparency = 1
+ProgressLabel.Font = Enum.Font.Gotham
+ProgressLabel.TextSize = 15
+ProgressLabel.ZIndex = 10000
+
+local TimerLabel = Instance.new("TextLabel", Frame)
+TimerLabel.Size = UDim2.new(1, -20, 0, 20)
+TimerLabel.Position = UDim2.new(0, 10, 0, 70)
+TimerLabel.Text = "Time: 00:00:00"
+TimerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TimerLabel.BackgroundTransparency = 1
+TimerLabel.Font = Enum.Font.Gotham
+TimerLabel.TextSize = 15
+TimerLabel.ZIndex = 10000
+
+-- Watermark dengan glow samar
+local Watermark = Instance.new("TextLabel", ScreenGui)
+Watermark.Size = UDim2.new(1, 0, 0, 50)
+Watermark.Position = UDim2.new(0.5, 0, 0.5, 0)
+Watermark.AnchorPoint = Vector2.new(0.5, 0.5)
+Watermark.Text = "CREATED BY\n- VEET -"
+Watermark.TextColor3 = Color3.fromRGB(255, 255, 255)
+Watermark.TextTransparency = 0.15
+Watermark.Font = Enum.Font.GothamBold
+Watermark.TextSize = 28
+Watermark.BackgroundTransparency = 1
+Watermark.ZIndex = 10001
+Watermark.TextYAlignment = Enum.TextYAlignment.Center
+
+local stroke = Instance.new("UIStroke", Watermark)
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Transparency = 0.7
+
+local function updateProgress()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        local cp = leaderstats:FindFirstChild("Checkpoint")
+        local summit = leaderstats:FindFirstChild("Summit")
+        if cp and summit then
+            ProgressLabel.Text = "CP: "..cp.Value.."/5 | Summit: "..summit.Value
+        end
+    end
+end
+
+local function resetTimer()
+    startTime = tick()
+    TimerLabel.Text = "Time: 00:00:00"
+end
+local function updateTimer()
+    if farming and startTime > 0 then
+        local elapsed = math.floor(tick() - startTime)
+        TimerLabel.Text = "Time: "..formatTime(elapsed)
+    end
+end
+
+Button.MouseButton1Click:Connect(function()
+    if farming then
+        stopFarming(BlackScreen, resetTimer)
+        Button.Text = "ENABLE"
+        Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    else
+        Button.Text = "DISABLE"
+        Button.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+        task.spawn(function()
+            startFarming(updateProgress, updateTimer, resetTimer, BlackScreen)
+        end)
+    end
 end)
 
-btn.MouseButton1Click:Connect(function()
-    isRunning = not isRunning
-    if isRunning then
-        btn.Text = "DISABLE"
-        btn.TextColor3 = Color3.fromRGB(255, 0, 0)
-        TweenService:Create(wm, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-    else
-        btn.Text = "ENABLE"
-        btn.TextColor3 = Color3.fromRGB(0, 255, 0)
-        TweenService:Create(wm, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
+RunService.Heartbeat:Connect(function()
+    if farming then
+        updateProgress()
+        updateTimer()
     end
 end)
