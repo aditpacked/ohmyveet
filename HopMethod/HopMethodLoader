@@ -1,15 +1,34 @@
--- 🔄 Auto Load by PlaceId (Loader)
-local placeScripts = {
-    ["123224294054165"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%204T1N",
-    ["102234703920418"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%20D4UN",
+-- 🔄 Auto Load by PlaceId atau GameId (Hybrid Loader)
+local scripts = {
+    -- Mapping pakai PlaceId
+    PlaceId = {
+        ["123224294054165"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%204T1N",
+        ["102234703920418"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%20D4UN",
+    },
+
+    -- Mapping pakai GameId
+    GameId = {
+        ["123224294054165"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%204T1N",
+        ["102234703920418"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%20D4UN",
+    }
 }
 
+-- Konversi ke string biar aman
 local placeId = tostring(game.PlaceId)
-local url = placeScripts[placeId]
+local gameId  = tostring(game.GameId)
 
+-- Cari URL
+local url = scripts.PlaceId[placeId] or scripts.GameId[gameId]
+
+-- Eksekusi
 if url then
-    print("🔗 Memuat script untuk PlaceId:", placeId)
-    loadstring(game:HttpGet(url))()
+    print("🔗 Memuat script untuk:", placeId, gameId)
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if not ok then
+        warn("❌ Gagal load script:", err)
+    end
 else
-    warn("⚠️ Tidak ada script yang cocok untuk PlaceId:", placeId)
+    warn("⚠️ Tidak ada script yang cocok untuk PlaceId:", placeId, "atau GameId:", gameId)
 end
