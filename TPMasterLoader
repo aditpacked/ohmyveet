@@ -9,12 +9,14 @@ local PREMIUM_USERS = {
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
 
 -- // GUI Utama
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+-- Frame utama
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 360, 0, 200)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -23,6 +25,59 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Stroke tipis neon
+local stroke = Instance.new("UIStroke", MainFrame)
+stroke.Thickness = 1.8
+stroke.Color = Color3.fromRGB(0, 170, 255)
+stroke.Transparency = 0.2
+
+-- Shadow halus
+local shadow = Instance.new("ImageLabel")
+shadow.Parent = MainFrame
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+shadow.ImageTransparency = 0.6
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+
+-- Grid tipis
+local Grid = Instance.new("ImageLabel")
+Grid.Parent = MainFrame
+Grid.Size = UDim2.new(1, 0, 1, 0)
+Grid.BackgroundTransparency = 1
+Grid.Image = "rbxassetid://62362048" -- pattern grid
+Grid.ImageTransparency = 0.9
+Grid.ScaleType = Enum.ScaleType.Tile
+Grid.TileSize = UDim2.new(0, 40, 0, 40)
+Grid.ZIndex = 0
+
+-- Judul
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "VEET - Learner"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.ZIndex = 2
+
+-- Label Key
+local KeyLabel = Instance.new("TextLabel")
+KeyLabel.Parent = MainFrame
+KeyLabel.Size = UDim2.new(0.8, 0, 0, 20)
+KeyLabel.Position = UDim2.new(0.1, 0, 0.3, -20)
+KeyLabel.BackgroundTransparency = 1
+KeyLabel.Text = "Masukkan Key"
+KeyLabel.Font = Enum.Font.GothamSemibold
+KeyLabel.TextSize = 14
+KeyLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+KeyLabel.ZIndex = 2
 
 -- Input Box
 local KeyBox = Instance.new("TextBox")
@@ -37,6 +92,10 @@ KeyBox.TextColor3 = Color3.fromRGB(220, 220, 220)
 KeyBox.BackgroundColor3 = Color3.fromRGB(15, 18, 25)
 KeyBox.ClearTextOnFocus = false
 Instance.new("UICorner", KeyBox).CornerRadius = UDim.new(0, 8)
+local strokeBox = Instance.new("UIStroke", KeyBox)
+strokeBox.Thickness = 1.5
+strokeBox.Color = Color3.fromRGB(0, 150, 255)
+strokeBox.Transparency = 0.2
 
 -- Tombol Unlock
 local SubmitBtn = Instance.new("TextButton")
@@ -50,6 +109,39 @@ SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitBtn.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
 
+-- Tombol Link
+local LinkBtn = Instance.new("TextButton")
+LinkBtn.Parent = MainFrame
+LinkBtn.Size = UDim2.new(0.8, 0, 0, 28)
+LinkBtn.Position = UDim2.new(0.1, 0, 0.9, -10)
+LinkBtn.Text = "GET KEY"
+LinkBtn.Font = Enum.Font.GothamSemibold
+LinkBtn.TextSize = 14
+LinkBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+LinkBtn.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+Instance.new("UICorner", LinkBtn).CornerRadius = UDim.new(0, 6)
+
+LinkBtn.MouseButton1Click:Connect(function()
+    setclipboard("https://sfl.gl/uOEta46")
+    StarterGui:SetCore("SendNotification", {
+        Title = "✅ Link dicopy",
+        Text = "Silakan paste di browser",
+        Duration = 3
+    })
+end)
+
+-- Hover efek
+local function hover(btn, hoverColor, normalColor)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = normalColor}):Play()
+    end)
+end
+hover(SubmitBtn, Color3.fromRGB(60, 40, 90), Color3.fromRGB(30, 35, 50))
+hover(LinkBtn, Color3.fromRGB(30, 40, 60), Color3.fromRGB(20, 25, 35))
+
 -- === Fungsi verifikasi ===
 local function verifyKey()
     if KeyBox.Text == REQUIRED_KEY then
@@ -60,14 +152,13 @@ local function verifyKey()
         task.wait(0.5)
         ScreenGui:Destroy()
 
-        -- Mapping GameID ke Script
         local placeScripts = {
-            [128473079243102] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt", -- MT ARUNIKA
-            [120818739452640] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt", -- MT CKPTW
-            [117693757941219] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt",  -- MT PAPUA
-            [75763972512400]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt",   -- MT RAMAH
-            [81721415693976]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt",  -- MT SERIBU
-            [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt", -- MT AKHIRAT
+            [128473079243102] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt",
+            [120818739452640] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt",
+            [117693757941219] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt",
+            [75763972512400]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt",
+            [81721415693976]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt",
+            [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt",
         }
 
         local currentPlaceId = game.PlaceId
@@ -75,8 +166,21 @@ local function verifyKey()
 
         -- ARUNIKA khusus premium
         if currentPlaceId == 128473079243102 and not isPremium then
-            warn("⚠️ ARUNIKA hanya bisa digunakan oleh user premium.")
+            StarterGui:SetCore("SendNotification", {
+                Title = "❌ Gagal",
+                Text = "Kamu bukan premium, script tidak bisa dijalankan.",
+                Duration = 4
+            })
             return
+        end
+
+        -- Jika premium, kasih notifikasi khusus
+        if isPremium then
+            StarterGui:SetCore("SendNotification", {
+                Title = "✅ Welcome Premium",
+                Text = "Selamat datang, akses penuh diberikan.",
+                Duration = 4
+            })
         end
 
         if placeScripts[currentPlaceId] then
