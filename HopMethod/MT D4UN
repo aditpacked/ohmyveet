@@ -1,6 +1,7 @@
 -- 🔒 Lock Username
 local allowedUsers = {
     ["6atotkaca9"] = true, 
+    ["heheahaed"] = true, 
 }
 
 local Players = game:GetService("Players")
