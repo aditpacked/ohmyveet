@@ -1,0 +1,141 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local leaderstats = LocalPlayer:WaitForChild("leaderstats")
+local checkpointStat = leaderstats:WaitForChild("Checkpoint")
+local summitStat = leaderstats:WaitForChild("Summit")
+
+local lastSummit = summitStat.Value
+local isRunning = false
+local autoEnabled = false
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TPStatusGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 260, 0, 100)
+frame.Position = UDim2.new(0.5, -130, 0, 50)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.3
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local label = Instance.new("TextLabel", frame)
+label.Size = UDim2.new(1, -20, 0, 40)
+label.Position = UDim2.new(0, 10, 0, 5)
+label.Text = "AUTO SUMMIT: DISABLED"
+label.TextColor3 = Color3.fromRGB(255, 50, 50)
+label.TextScaled = true
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.GothamBold
+
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.new(1, -20, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 50)
+button.Text = "ENABLE"
+button.TextColor3 = Color3.fromRGB(0,255,0)
+button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+button.Font = Enum.Font.GothamBold
+button.TextScaled = true
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+-- Helpers
+local function updateStatus(text, color)
+    label.Text = text
+    label.TextColor3 = color or Color3.fromRGB(0,255,0)
+end
+
+-- Checkpoints
+local checkpoints = {
+    CFrame.new(512.116699, 161.743073, -530.733582, 0.99996984, 0.00776892155, -4.3591217e-06, -0.00776892155, 0.999969184, -0.00112217758, -4.3591217e-06, 0.00112217758, 0.999999344),
+    CFrame.new(387.290588, 310.805664, -184.8134, 0.678383708, 0, -0.734707832, 0, 1, 0, 0.734707832, 0, 0.678383708),
+    CFrame.new(100.725342, 413.132324, 616.563599, 1,0,0, 0,1,0, 0,0,1),
+    CFrame.new(11.4385471, 601.79126, 998.372131, 0.682661772, 0, -0.730734527, 0,1,0, 0.730734527,0,0.682661772),
+    CFrame.new(873.259888, 865.858154, 580.956299, 0.875571907, 0, -0.483087838, 0,1,0, 0.483087838,0,0.875571907),
+    CFrame.new(1617.88049, 1082.10889, 157.902588, 0.537304401,0,-0.843388379, 0,1,0, 0.843388379,0,0.537304401),
+    CFrame.new(2970.30151, 1528.71387, 708.527832, -0.340948462, 0.0243845228, -0.939765692, -0.0293302853, 0.99890095, 0.0365600064, 0.93962431, 0.0400286764, -0.339858532),
+    CFrame.new(1946.44397, 1744.76758, 1225.51538, -0.561534047, -0.0007210318, -0.827453256, -0.0332910344, 0.999209642, 0.0217215717, 0.826783657, 0.039744176, -0.561114192),
+    CFrame.new(1785.72668, 1998.62524, 2173.77856, 0.987994194, 0.0263281576, 0.152230963, -0.0261699781, 0.999652863, -0.00304295728, -0.152258232, -0.000977456919, 0.988340259)
+}
+
+local function getHRP()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+end
+
+local function getHumanoid()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+end
+
+local function teleportTo(index)
+    local hrp = getHRP()
+    if hrp and checkpoints[index] then
+        hrp.CFrame = checkpoints[index]
+        updateStatus("⚡ Teleport ke CP"..index, Color3.fromRGB(255,255,0))
+    end
+end
+
+-- Route Runner
+local function runRoute()
+    if isRunning or not autoEnabled then return end
+    isRunning = true
+
+    task.spawn(function()
+        for i = 1, #checkpoints do
+            if not isRunning or not autoEnabled then break end
+
+            local targetValue = i
+            while isRunning and autoEnabled and checkpointStat.Value < targetValue do
+                teleportTo(i)
+                task.wait(1)
+            end
+
+            if not isRunning or not autoEnabled then break end
+            updateStatus("✅ CP Tercapai! Tunggu...", Color3.fromRGB(0,255,0))
+            task.wait(8)
+        end
+
+        if isRunning and autoEnabled then
+            updateStatus("🎉 FINISH! Menunggu Summit...", Color3.fromRGB(0,200,255))
+        end
+    end)
+end
+
+-- Summit handler
+summitStat.Changed:Connect(function(newValue)
+    if autoEnabled and newValue > lastSummit then
+        lastSummit = newValue
+        updateStatus("⛰ Summit naik! Reset 3 detik...", Color3.fromRGB(255,0,0))
+
+        isRunning = false
+        task.wait(3)
+
+        local humanoid = getHumanoid()
+        if humanoid then humanoid.Health = 0 end
+
+        LocalPlayer.CharacterAdded:Wait()
+        task.delay(1, function()
+            runRoute()
+        end)
+    end
+end)
+
+-- Button Toggle
+button.MouseButton1Click:Connect(function()
+    autoEnabled = not autoEnabled
+    if autoEnabled then
+        button.Text = "DISABLE"
+        button.TextColor3 = Color3.fromRGB(255,0,0)
+        button.BackgroundColor3 = Color3.fromRGB(20,80,20)
+        updateStatus("AUTO SUMMIT: ENABLED", Color3.fromRGB(0,255,0))
+        runRoute()
+    else
+        button.Text = "ENABLE"
+        button.TextColor3 = Color3.fromRGB(0,255,0)
+        button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        updateStatus("AUTO SUMMIT: DISABLED", Color3.fromRGB(255,50,50))
+        isRunning = false
+    end
+end)

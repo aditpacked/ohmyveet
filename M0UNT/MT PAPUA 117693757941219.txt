@@ -1,0 +1,85 @@
+-- 🔹 TPPos (Loop 0.5s) + Auto BreakJoints (0.1s delay) + GUI ON/OFF
+-- Tujuan
+local DEST_CF = CFrame.new(6056.94678, 2263.18604, -862.271851)
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- State
+local enabled = false
+local loopConn
+
+-- Helper
+local function getChar()
+	return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function getHRP()
+	local char = getChar()
+	return char:WaitForChild("HumanoidRootPart", 10)
+end
+
+local function tpAndBreak()
+	local hrp = getHRP()
+	if hrp then
+		hrp.CFrame = DEST_CF
+		task.wait(0.1) -- jeda 0.1 detik
+		local char = hrp.Parent
+		if char then char:BreakJoints() end
+	end
+end
+
+-- Loop
+local function startLoop()
+	if loopConn then return end
+	loopConn = RunService.Heartbeat:Connect(function()
+		if enabled then
+			tpAndBreak()
+			task.wait(0.5) -- delay antar TP
+		end
+	end)
+end
+
+local function stopLoop()
+	if loopConn then loopConn:Disconnect(); loopConn = nil end
+end
+
+-- === GUI ===
+local screen = Instance.new("ScreenGui", game.CoreGui)
+screen.Name = "TPPosGUI"
+
+local frame = Instance.new("Frame", screen)
+frame.Size = UDim2.fromOffset(200, 80)
+frame.Position = UDim2.new(0.5, -100, 0.25, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,30)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Toggle Button (judul langsung ENABLE)
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1,-20,1,-20)
+toggle.Position = UDim2.fromOffset(10,10)
+toggle.Text = "ENABLE"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 18
+toggle.BackgroundColor3 = Color3.fromRGB(50,100,60)
+toggle.TextColor3 = Color3.fromRGB(240,240,240)
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 10)
+
+-- Actions
+toggle.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	if enabled then
+		toggle.Text = "DISABLE"
+		toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+		tpAndBreak()
+		startLoop()
+	else
+		toggle.Text = "ENABLE"
+		toggle.BackgroundColor3 = Color3.fromRGB(50,100,60)
+		stopLoop()
+	end
+end)
