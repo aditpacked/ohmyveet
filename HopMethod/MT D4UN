@@ -1,0 +1,138 @@
+-- 🔒 Lock Username
+local allowedUsers = {
+    ["6atotkaca9"] = true, 
+}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local leaderstats = LocalPlayer:WaitForChild("leaderstats")
+local ShelterStat = leaderstats:WaitForChild("Shelter")
+local SummitStat = leaderstats:WaitForChild("Summit")
+
+if not allowedUsers[LocalPlayer.Name] then
+    warn("❌ Script tidak diizinkan untuk user:", LocalPlayer.Name)
+    return
+end
+
+-- Config
+getgenv().AutoSummit = true
+
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+
+-- 📍 Checkpoints
+local checkpoints = {
+    [0] = {cf = CFrame.new(-622.394104, 252.656754, -384.253387), name = "POS 1"},
+    [1] = {cf = CFrame.new(-1202.74609, 258.919952, -487.127045), name = "POS 2"},
+    [2] = {cf = CFrame.new(-1399.31982, 579.078125, -950.481506), name = "POS 3"},
+    [3] = {cf = CFrame.new(-1700.48157, 814.268005, -1399.25806), name = "POS 4"},
+    [4] = {cf = CFrame.new(-3231.33105, 1718.79272, -2590.81152,
+                     0.736665606, -0.0314309113, -0.67552644,
+                     -0.0241975598, 0.997054517, -0.0727785677,
+                     0.675824225, 0.0699595511, 0.733735204),
+            name = "FINAL"}
+}
+
+-- 🚀 Teleport player ke posisi tertentu
+local function TeleportTo(cf)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    hrp.CFrame = cf
+end
+
+-- 🔎 Cari server acak yang tidak penuh
+local function GetRandomServer(placeId)
+    local servers, cursor = {}, ""
+    repeat
+        local url = string.format(
+            "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100%s",
+            placeId, cursor ~= "" and "&cursor=" .. cursor or ""
+        )
+        local ok, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet(url))
+        end)
+        if ok and result and result.data then
+            for _, server in ipairs(result.data) do
+                -- 🔑 pilih server dengan minimal 2 slot kosong
+                if server.playing < (server.maxPlayers - 2) and server.id ~= game.JobId then
+                    table.insert(servers, server)
+                end
+            end
+            cursor = result.nextPageCursor or ""
+        else
+            break
+        end
+    until cursor == "" or #servers >= 200
+    if #servers > 0 then
+        return servers[math.random(1, #servers)]
+    end
+end
+
+-- 🔁 Hop server dengan retry
+local function SafeHop(nextStep)
+    local target
+    repeat
+        target = GetRandomServer(game.PlaceId)
+        task.wait(1)
+    until target
+
+    local success, err = pcall(function()
+        if queue_on_teleport then
+            queue_on_teleport([[
+                loadstring(game:HttpGet("PUT_YOUR_SCRIPT_LINK_HERE"))()
+            ]])
+        end
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, target.id, LocalPlayer)
+    end)
+
+    if not success then
+        warn("⚠️ Teleport gagal:", err, " → retry...")
+        task.wait(2)
+        SafeHop(nextStep)
+    end
+end
+
+-- 🔂 Main loop AutoSummit
+task.spawn(function()
+    local lastSummit = SummitStat.Value
+
+    while getgenv().AutoSummit do
+        local currentShelter = ShelterStat.Value
+        local cp = checkpoints[currentShelter]
+
+        if cp then
+            TeleportTo(cp.cf)
+            warn("⚡ Teleport ke:", cp.name, "(Shelter:", currentShelter, ")")
+
+            task.wait(3)
+
+            if currentShelter == 4 then
+                -- FINAL: tunggu Summit naik dulu
+                repeat
+                    task.wait(2)
+                until SummitStat.Value > lastSummit
+
+                lastSummit = SummitStat.Value
+                warn("✅ Summit naik! Respawn ulang loop.")
+
+                -- Bunuh karakter
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    task.wait(3)
+                    char.Humanoid.Health = 0
+                end
+                task.wait(5)
+
+            else
+                -- Shelter < 4
+                if ShelterStat.Value > currentShelter then
+                    warn("🔄 Shelter naik, hop server...")
+                    SafeHop(currentShelter + 1)
+                    return
+                end
+            end
+        end
+
+        task.wait(2)
+    end
+end)
