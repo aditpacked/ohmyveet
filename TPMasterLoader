@@ -167,12 +167,13 @@ local function verifyKey()
         ScreenGui:Destroy()
 
         local placeScripts = {
-            [128473079243102] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt",
-            [120818739452640] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt",
-            [117693757941219] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt",
-            [75763972512400]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt",
-            [81721415693976]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt",
-            [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt",
+            [128473079243102] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt", -- MT ARUNIKA
+            [120818739452640] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt", -- MT CKPTW
+            [117693757941219] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt",  -- MT PAPUA
+            [75763972512400]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt",   -- MT RAMAH
+            [81721415693976]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt",  -- MT SERIBU
+            [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt", -- MT AKHIRAT
+            [126486046309980] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20TRANLILI%20126486046309980.txt", -- MT TRANLILI
         }
 
         local currentPlaceId = game.PlaceId
