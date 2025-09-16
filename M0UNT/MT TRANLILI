@@ -1,0 +1,102 @@
+-- 🌀 Loop Auto TP CP1 -> CP2 -> Mati (delay 3s tiap aksi)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Data koordinat
+local checkpoints = {
+    CFrame.new(-1471, 250.5, -4231.5, 0, 0, 1, 1, 0, 0, 0, 1, 0), -- CP1
+    CFrame.new(-2810.99268, 97.292099, -3860.75269,
+        0.990270376, 0, -0.13915664,
+        0, 1, 0,
+        0.13915664, 0, 0.990270376) -- CP2
+}
+
+-- Fungsi ambil HRP
+local function getHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+-- Fungsi bunuh karakter
+local function killCharacter()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.Health = 0
+    end
+end
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoTPCP_GUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton", screenGui)
+button.Size = UDim2.new(0,120,0,40)
+button.Position = UDim2.new(0.5,-60,0.9,-50)
+button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+button.TextColor3 = Color3.fromRGB(0,255,0)
+button.Text = "ENABLE"
+button.Font = Enum.Font.GothamBold
+button.TextScaled = true
+button.AutoButtonColor = true
+button.ZIndex = 5
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
+
+local watermark = Instance.new("TextLabel", screenGui)
+watermark.Size = UDim2.new(1,0,1,0)
+watermark.Position = UDim2.new(0.5,0,0.5,0)
+watermark.AnchorPoint = Vector2.new(0.5,0.5)
+watermark.BackgroundTransparency = 1
+watermark.Text = "CREATED BY\n- VEET -"
+watermark.TextColor3 = Color3.fromRGB(255,255,255)
+watermark.Font = Enum.Font.GothamBlack
+watermark.TextSize = 44
+watermark.TextTransparency = 0.8
+watermark.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+watermark.TextStrokeTransparency = 0.2
+watermark.Visible = false
+
+-- State
+local running = false
+
+-- Loop
+task.spawn(function()
+    while true do
+        if running then
+            -- Step 1: TP CP1
+            local HRP = getHRP()
+            HRP.CFrame = checkpoints[1]
+            task.wait(3)
+
+            -- Step 2: TP CP2
+            HRP = getHRP()
+            HRP.CFrame = checkpoints[2]
+            task.wait(3)
+
+            -- Step 3: Mati
+            killCharacter()
+            task.wait(3) -- jeda sebelum ulang
+        else
+            task.wait(0.5) -- idle saat off
+        end
+    end
+end)
+
+-- Toggle Button
+button.MouseButton1Click:Connect(function()
+    running = not running
+    if running then
+        button.Text = "DISABLE"
+        button.TextColor3 = Color3.fromRGB(255,0,0)
+        button.BackgroundColor3 = Color3.fromRGB(20,80,20)
+        watermark.Visible = true
+    else
+        button.Text = "ENABLE"
+        button.TextColor3 = Color3.fromRGB(0,255,0)
+        button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        watermark.Visible = false
+    end
+end)
