@@ -1,12 +1,15 @@
--- 🔄 Auto Load by GameId
+-- 🔄 Auto Load by GameId (Loader)
 local gameScripts = {
-    [123224294054165] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%204T1N",
-    [102234703920418] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%20D4UN",
+    ["123224294054165"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%204T1N",
+    ["102234703920418"] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/HopMethod/MT%20D4UN",
 }
 
-local url = gameScripts[game.GameId]
+local gameId = tostring(game.GameId)
+local url = gameScripts[gameId]
+
 if url then
+    print("🔗 Memuat script untuk GameId:", gameId)
     loadstring(game:HttpGet(url))()
 else
-    warn("⚠️ Tidak ada script yang cocok untuk GameId:", game.GameId)
+    warn("⚠️ Tidak ada script yang cocok untuk GameId:", gameId)
 end
