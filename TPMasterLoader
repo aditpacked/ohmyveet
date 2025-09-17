@@ -46,7 +46,7 @@ local function runLoader(isPremium)
         [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt",
         [126486046309980] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20TRANLILI%20126486046309980.txt",
         [114027607368593] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20HTS%20114027607368593.txt",
-        [90593834103802] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20JAWA%2090593834103802.txt, 
+        [90593834103802] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20JAWA%2090593834103802.txt", 
     }
 
     local currentPlaceId = game.PlaceId
