@@ -1,0 +1,76 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.5, -100, 0.2, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BackgroundTransparency = 0.2
+Frame.Active = true
+Frame.Draggable = true
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "VEET - Home"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+
+local ToggleBtn = Instance.new("TextButton", Frame)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 40)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+ToggleBtn.Text = "DISABLED"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
+
+local enabled = false
+
+local function trigger(part)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    if part and part:IsA("BasePart") then
+        firetouchinterest(hrp, part, 0)
+        task.wait()
+        firetouchinterest(hrp, part, 1)
+    end
+end
+
+local function farmingLoop()
+    while enabled do
+        for i = 0, 20 do
+            if not enabled then break end
+            local cp = workspace:FindFirstChild("Checkpoint"..i)
+            if cp then
+                trigger(cp)
+                task.wait() -- ⚡ super cepat (1 frame aja)
+            end
+        end
+        if enabled then
+            local summit = workspace:FindFirstChild("Summit")
+            if summit then
+                trigger(summit)
+                task.wait() -- ⚡ super cepat juga
+            end
+        end
+    end
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    if enabled then
+        ToggleBtn.Text = "ENABLED"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+        task.spawn(farmingLoop)
+    else
+        ToggleBtn.Text = "DISABLED"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    end
+end)
