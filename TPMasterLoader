@@ -3,7 +3,7 @@ local REQUIRED_KEY = "JakwiwhBs"
 local PREMIUM_USERS = {
     ["9wenerd"] = true,
     ["6atotkaca9"] = true,
-    ["heheahaed"] = true, 
+    ["leviathangeming"] = true, 
 }
 
 -- // Services
