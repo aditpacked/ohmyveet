@@ -38,27 +38,29 @@ end
 
 local function runLoader(isPremium)
     local placeScripts = {
-        [128473079243102] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt",
-        [120818739452640] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt",
-        [117693757941219] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt",
-        [75763972512400]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt",
-        [81721415693976]  = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt",
-        [108448055225264] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt",
-        [126486046309980] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20TRANLILI%20126486046309980.txt",
-        [114027607368593] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20HTS%20114027607368593.txt",
-        [90593834103802] = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20JAWA%2090593834103802.txt", 
+        [128473079243102] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20ARUNIKA%20128473079243102.txt", premiumOnly = true},
+        [120818739452640] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20CKPTW%20120818739452640.txt"},
+        [117693757941219] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20PAPUA%20117693757941219.txt"},
+        [75763972512400]  = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20RAMAH%2075763972512400.txt"},
+        [81721415693976]  = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20SERIBU%2081721415693976.txt"},
+        [108448055225264] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20AKHIRAT%20108448055225264.txt"},
+        [126486046309980] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20TRANLILI%20126486046309980.txt"},
+        [114027607368593] = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20HTS%20114027607368593.txt"},
+        [90593834103802]  = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20JAWA%2090593834103802.txt"},
+        [76964310785698]  = {url = "https://raw.githubusercontent.com/aditpacked/ohmyveet/refs/heads/main/M0UNT/MT%20YAHAYUK%2076964310785698.txt", premiumOnly = true},
     }
 
     local currentPlaceId = game.PlaceId
-    if currentPlaceId == 128473079243102 and not isPremium then
-        showPopup("❌ Kamu bukan premium, script tidak bisa dijalankan", Color3.fromRGB(255,80,80))
-        return
-    end
+    local scriptData = placeScripts[currentPlaceId]
 
-    if placeScripts[currentPlaceId] then
-        local scriptUrl = placeScripts[currentPlaceId]
+    if scriptData then
+        if scriptData.premiumOnly and not isPremium then
+            showPopup("❌ Hanya user premium yang bisa pakai script ini", Color3.fromRGB(255,80,80))
+            return
+        end
+
         local success, result = pcall(function()
-            return loadstring(game:HttpGet(scriptUrl))()
+            return loadstring(game:HttpGet(scriptData.url))()
         end)
         if not success then
             showPopup("❌ Gagal load script", Color3.fromRGB(255,80,80))
