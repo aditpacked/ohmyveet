@@ -3,6 +3,7 @@ local a = {
     ["6atotkaca9"] = true,
     ["9wenerd"] = true,
     ["heheahaed"] = true, 
+    ["leviathangeming"] = true, 
 }
 
 local b = game:GetService("Players").LocalPlayer
