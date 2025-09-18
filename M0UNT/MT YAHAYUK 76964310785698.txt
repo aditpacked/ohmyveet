@@ -1,0 +1,154 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local leaderstats = LocalPlayer:WaitForChild("leaderstats")
+local cpStat = leaderstats:FindFirstChild("Checkpoint")
+
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.05, 0)
+frame.BackgroundTransparency = 0.2
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, 0, 0, 35)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundTransparency = 1
+header.Text = "VEET - Home"
+header.Font = Enum.Font.GothamBold
+header.TextSize = 20
+header.TextColor3 = Color3.fromRGB(255, 255, 255)
+header.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.8, 0, 0, 40)
+button.Position = UDim2.new(0.1, 0, 0.5, -10)
+button.Text = "ENABLE"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 20
+button.BackgroundTransparency = 0.1
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Parent = frame
+button.AutoButtonColor = false
+button.BorderSizePixel = 0
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = button
+
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+local enabled = false
+local cycleCount = 0
+
+local function getHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart", 5)
+end
+
+local function fireTouch(part)
+    local hrp = getHRP()
+    if hrp and part then
+        firetouchinterest(hrp, part, 0)
+        task.wait(0.2)
+        firetouchinterest(hrp, part, 1)
+    end
+end
+
+local function buildMapping()
+    local map = {}
+    local cpFolder = workspace:FindFirstChild("Checkpoints")
+    if cpFolder then
+        local cps = {}
+        for _, child in ipairs(cpFolder:GetChildren()) do
+            local num = tonumber(child.Name:match("%d+"))
+            if num then
+                cps[num] = child:FindFirstChild("TouchPart") or child
+            end
+        end
+        local maxIndex = #cps
+        if cps[1] then map["Start"] = cps[1] end
+        for i = 1, maxIndex-1 do
+            map["CP"..i] = cps[i+1]
+        end
+        if cps[maxIndex] then
+            map["CP"..maxIndex] = workspace:WaitForChild("SummitPart")
+        end
+    end
+    local summit = workspace:FindFirstChild("SummitPart")
+    local ret = workspace:FindFirstChild("SummitReturnPad")
+    if summit and ret then
+        map["Summit"] = ret
+    end
+    return map
+end
+
+local function runTrigger()
+    local map = buildMapping()
+    while enabled do
+        local current = cpStat.Value
+        local nextPart = map[current]
+        if nextPart then
+            local before = current
+            while enabled and cpStat.Value == before do
+                fireTouch(nextPart)
+                task.wait(6)
+            end
+            if cpStat.Value == "Summit" then
+                cycleCount += 1
+                task.wait(2)
+            end
+        else
+            map = buildMapping()
+            task.wait(3)
+        end
+    end
+    button.Text = "ENABLE"
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+end
+
+button.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    if enabled then
+        cycleCount = 0
+        button.Text = "DISABLE"
+        button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        task.spawn(runTrigger)
+    else
+        button.Text = "ENABLE"
+        button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+end)
