@@ -1,0 +1,262 @@
+-- Minimalist Animation Changer (Full + Tabs + Minimize)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function getAnimate()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("Animate")
+end
+
+local Animate = getAnimate()
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Animate = char:WaitForChild("Animate")
+end)
+
+-- GUI ROOT
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AnimationChanger"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game:WaitForChild("CoreGui")
+
+-- MAIN
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Parent = ScreenGui
+Main.BackgroundColor3 = Color3.fromRGB(71, 71, 71)
+Main.BorderSizePixel = 0
+Main.Position = UDim2.new(0.42, 0, -1, 0)
+Main.Size = UDim2.new(0, 300, 0, 270)
+Main.Active = true
+Main.Draggable = true
+
+-- TOPBAR
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = Main
+TopBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "VEET - Home"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local Close = Instance.new("TextButton")
+Close.Name = "Close"
+Close.Parent = TopBar
+Close.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Close.BorderSizePixel = 0
+Close.Position = UDim2.new(1, -30, 0, 0)
+Close.Size = UDim2.new(0, 30, 0, 30)
+Close.Font = Enum.Font.GothamBold
+Close.Text = "X"
+Close.TextColor3 = Color3.new(1, 0, 0)
+Close.TextSize = 20
+Close.MouseButton1Click:Connect(function()
+    Main:TweenPosition(UDim2.new(0.42, 0, -1, 0), "Out", "Quad", 0.35, true)
+    task.wait(0.4)
+    ScreenGui:Destroy()
+end)
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = "Minimize"
+Minimize.Parent = TopBar
+Minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minimize.BorderSizePixel = 0
+Minimize.Position = UDim2.new(1, -60, 0, 0)
+Minimize.Size = UDim2.new(0, 30, 0, 30)
+Minimize.Font = Enum.Font.GothamBold
+Minimize.Text = "-"
+Minimize.TextColor3 = Color3.new(1, 1, 1)
+Minimize.TextSize = 20
+
+-- TAB BAR
+local TabBar = Instance.new("Frame")
+TabBar.Name = "TabBar"
+TabBar.Parent = Main
+TabBar.BackgroundColor3 = Color3.fromRGB(58, 58, 58)
+TabBar.BorderSizePixel = 0
+TabBar.Position = UDim2.new(0, 0, 0, 30)
+TabBar.Size = UDim2.new(1, 0, 0, 28)
+
+local function makeTabBtn(text, xOffset)
+    local b = Instance.new("TextButton")
+    b.Parent = TabBar
+    b.Size = UDim2.new(0, 90, 1, 0)
+    b.Position = UDim2.new(0, xOffset, 0, 0)
+    b.BackgroundColor3 = Color3.fromRGB(80,80,80)
+    b.Text = text
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 14
+    b.TextColor3 = Color3.new(1,1,1)
+    b.AutoButtonColor = true
+    return b
+end
+
+local BtnNormal = makeTabBtn("Normal", 6)
+local BtnSpecial = makeTabBtn("Special", 102)
+local BtnOther = makeTabBtn("Other", 198)
+
+-- LIST (SCROLL)
+local List = Instance.new("ScrollingFrame")
+List.Name = "List"
+List.Parent = Main
+List.BackgroundTransparency = 1
+List.Position = UDim2.new(0, 0, 0, 58)
+List.Size = UDim2.new(1, 0, 1, -58)
+List.ScrollBarThickness = 6
+List.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = List
+UIList.Padding = UDim.new(0, 6)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local UIPad = Instance.new("UIPadding")
+UIPad.Parent = List
+UIPad.PaddingLeft = UDim.new(0, 8)
+UIPad.PaddingTop = UDim.new(0, 8)
+UIPad.PaddingRight = UDim.new(0, 8)
+UIPad.PaddingBottom = UDim.new(0, 8)
+
+-- APPLY ANIMS
+local function setAnim(map)
+    for path, id in pairs(map) do
+        local node = Animate
+        for _, part in ipairs(string.split(path, ".")) do
+            if node then node = node:FindFirstChild(part) end
+        end
+        if node and node:IsA("Animation") then
+            node.AnimationId = "http://www.roblox.com/asset/?id="..tostring(id)
+        end
+    end
+    local hum = (LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid")
+    if hum then hum.Jump = true end
+end
+
+-- DATA
+local animations = {
+    Astronaut = {["idle.Animation1"]=891621366,["idle.Animation2"]=891633237,["walk.WalkAnim"]=891667138,["run.RunAnim"]=891636393,["jump.JumpAnim"]=891627522,["climb.ClimbAnim"]=891609353,["fall.FallAnim"]=891617961},
+    Bubbly = {["idle.Animation1"]=910004836,["idle.Animation2"]=910009958,["walk.WalkAnim"]=910034870,["run.RunAnim"]=910025107,["jump.JumpAnim"]=910016857,["fall.FallAnim"]=910001910,["swimidle.SwimIdle"]=910030921,["swim.Swim"]=910028158},
+    Cartoony = {["idle.Animation1"]=742637544,["idle.Animation2"]=742638445,["walk.WalkAnim"]=742640026,["run.RunAnim"]=742638842,["jump.JumpAnim"]=742637942,["climb.ClimbAnim"]=742636889,["fall.FallAnim"]=742637151},
+    Elder = {["idle.Animation1"]=845397899,["idle.Animation2"]=845400520,["walk.WalkAnim"]=845403856,["run.RunAnim"]=845386501,["jump.JumpAnim"]=845398858,["climb.ClimbAnim"]=845392038,["fall.FallAnim"]=845396048},
+    Knight = {["idle.Animation1"]=657595757,["idle.Animation2"]=657568135,["walk.WalkAnim"]=657552124,["run.RunAnim"]=657564596,["jump.JumpAnim"]=658409194,["climb.ClimbAnim"]=658360781,["fall.FallAnim"]=657600338},
+    Levitation = {["idle.Animation1"]=616006778,["idle.Animation2"]=616008087,["walk.WalkAnim"]=616013216,["run.RunAnim"]=616010382,["jump.JumpAnim"]=616008936,["climb.ClimbAnim"]=616003713,["fall.FallAnim"]=616005863},
+    Mage = {["idle.Animation1"]=707742142,["idle.Animation2"]=707855907,["walk.WalkAnim"]=707897309,["run.RunAnim"]=707861613,["jump.JumpAnim"]=707853694,["climb.ClimbAnim"]=707826056,["fall.FallAnim"]=707829716},
+    Ninja = {["idle.Animation1"]=656117400,["idle.Animation2"]=656118341,["walk.WalkAnim"]=656121766,["run.RunAnim"]=656118852,["jump.JumpAnim"]=656117878,["climb.ClimbAnim"]=656114359,["fall.FallAnim"]=656115606},
+    Pirate = {["idle.Animation1"]=750781874,["idle.Animation2"]=750782770,["walk.WalkAnim"]=750785693,["run.RunAnim"]=750783738,["jump.JumpAnim"]=750782230,["climb.ClimbAnim"]=750779899,["fall.FallAnim"]=750780242},
+    Robot = {["idle.Animation1"]=616088211,["idle.Animation2"]=616089559,["walk.WalkAnim"]=616095330,["run.RunAnim"]=616091570,["jump.JumpAnim"]=616090535,["climb.ClimbAnim"]=616086039,["fall.FallAnim"]=616087089},
+    Stylish = {["idle.Animation1"]=616136790,["idle.Animation2"]=616138447,["walk.WalkAnim"]=616146177,["run.RunAnim"]=616140816,["jump.JumpAnim"]=616139451,["climb.ClimbAnim"]=616133594,["fall.FallAnim"]=616134815},
+    SuperHero = {["idle.Animation1"]=616111295,["idle.Animation2"]=616113536,["walk.WalkAnim"]=616122287,["run.RunAnim"]=616117076,["jump.JumpAnim"]=616115533,["climb.ClimbAnim"]=616104706,["fall.FallAnim"]=616108001},
+    Toy = {["idle.Animation1"]=782841498,["idle.Animation2"]=782845736,["walk.WalkAnim"]=782843345,["run.RunAnim"]=782842708,["jump.JumpAnim"]=782847020,["climb.ClimbAnim"]=782843869,["fall.FallAnim"]=782846423},
+    Vampire = {["idle.Animation1"]=1083445855,["idle.Animation2"]=1083450166,["walk.WalkAnim"]=1083473930,["run.RunAnim"]=1083462077,["jump.JumpAnim"]=1083455352,["climb.ClimbAnim"]=1083439238,["fall.FallAnim"]=1083443587},
+    Werewolf = {["idle.Animation1"]=1083195517,["idle.Animation2"]=1083214717,["walk.WalkAnim"]=1083178339,["run.RunAnim"]=1083216690,["jump.JumpAnim"]=1083218792,["climb.ClimbAnim"]=1083182000,["fall.FallAnim"]=1083189019},
+    Zombie = {["idle.Animation1"]=616158929,["idle.Animation2"]=616160636,["walk.WalkAnim"]=616168032,["run.RunAnim"]=616163682,["jump.JumpAnim"]=616161997,["climb.ClimbAnim"]=616156119,["fall.FallAnim"]=616157476},
+
+    -- SPECIAL
+    Patrol = {["idle.Animation1"]=1149612882,["idle.Animation2"]=1150842221,["walk.WalkAnim"]=1151231493,["run.RunAnim"]=1150967949,["jump.JumpAnim"]=1148811837,["climb.ClimbAnim"]=1148811837,["fall.FallAnim"]=1148863382},
+    Confident = {["idle.Animation1"]=1069977950,["idle.Animation2"]=1069987858,["walk.WalkAnim"]=1070017263,["run.RunAnim"]=1070001516,["jump.JumpAnim"]=1069984524,["climb.ClimbAnim"]=1069946257,["fall.FallAnim"]=1069973677},
+    Popstar = {["idle.Animation1"]=1212900985,["idle.Animation2"]=1150842221,["walk.WalkAnim"]=1212980338,["run.RunAnim"]=1212980348,["jump.JumpAnim"]=1212954642,["climb.ClimbAnim"]=1213044953,["fall.FallAnim"]=1212900995},
+    Cowboy = {["idle.Animation1"]=1014390418,["idle.Animation2"]=1014398616,["walk.WalkAnim"]=1014421541,["run.RunAnim"]=1014401683,["jump.JumpAnim"]=1014394726,["climb.ClimbAnim"]=1014380606,["fall.FallAnim"]=1014384571},
+    Ghost = {["idle.Animation1"]=616006778,["idle.Animation2"]=616008087,["walk.WalkAnim"]=616013216,["run.RunAnim"]=616013216,["jump.JumpAnim"]=616008936,["fall.FallAnim"]=616005863,["swimidle.SwimIdle"]=616012453,["swim.Swim"]=616011509},
+    Sneaky = {["idle.Animation1"]=1132473842,["idle.Animation2"]=1132477671,["walk.WalkAnim"]=1132510133,["run.RunAnim"]=1132494274,["jump.JumpAnim"]=1132489853,["climb.ClimbAnim"]=1132461372,["fall.FallAnim"]=1132469004},
+    Princess = {["idle.Animation1"]=941003647,["idle.Animation2"]=941013098,["walk.WalkAnim"]=941028902,["run.RunAnim"]=941015281,["jump.JumpAnim"]=941008832,["climb.ClimbAnim"]=940996062,["fall.FallAnim"]=941000007},
+
+    -- OTHER
+    None = {["idle.Animation1"]=0,["idle.Animation2"]=0,["walk.WalkAnim"]=0,["run.RunAnim"]=0,["jump.JumpAnim"]=0,["climb.ClimbAnim"]=0,["fall.FallAnim"]=0,["swimidle.SwimIdle"]=0,["swim.Swim"]=0},
+    Anthro = {["idle.Animation1"]=2510196951,["idle.Animation2"]=2510197257,["walk.WalkAnim"]=2510202577,["run.RunAnim"]=2510198475,["jump.JumpAnim"]=2510197830,["climb.ClimbAnim"]=2510192778,["fall.FallAnim"]=2510195892},
+}
+
+local NORMAL_LIST = {"Astronaut","Bubbly","Cartoony","Elder","Knight","Levitation","Mage","Ninja","Pirate","Robot","Stylish","SuperHero","Toy","Vampire","Werewolf","Zombie"}
+local SPECIAL_LIST = {"Patrol","Confident","Popstar","Cowboy","Ghost","Sneaky","Princess"}
+local OTHER_LIST = {"None","Anthro"}
+
+-- RENDER
+local function clearList()
+    for _,c in ipairs(List:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+end
+
+local function makeItem(name)
+    local btn = Instance.new("TextButton")
+    btn.Parent = List
+    btn.Size = UDim2.new(1, -16, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Text = name
+    btn.AutoButtonColor = true
+    btn.MouseButton1Click:Connect(function()
+        local map = animations[name]
+        if map then setAnim(map) end
+    end)
+
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0,6)
+end
+
+local function render(names)
+    clearList()
+    for _,name in ipairs(names) do
+        makeItem(name)
+    end
+    task.wait() -- biar UIList update ukuran dulu
+    local contentSize = UIList.AbsoluteContentSize.Y + UIPad.PaddingTop.Offset + UIPad.PaddingBottom.Offset
+    List.CanvasSize = UDim2.new(0,0,0, math.max(contentSize, List.AbsoluteSize.Y))
+end
+
+local function setActiveTab(active)
+    -- simple highlight
+    BtnNormal.BackgroundColor3 = active=="Normal" and Color3.fromRGB(100,100,100) or Color3.fromRGB(80,80,80)
+    BtnSpecial.BackgroundColor3 = active=="Special" and Color3.fromRGB(100,100,100) or Color3.fromRGB(80,80,80)
+    BtnOther.BackgroundColor3 = active=="Other" and Color3.fromRGB(100,100,100) or Color3.fromRGB(80,80,80)
+end
+
+local currentTab = "Normal"
+setActiveTab(currentTab)
+render(NORMAL_LIST)
+
+BtnNormal.MouseButton1Click:Connect(function()
+    currentTab = "Normal"
+    setActiveTab(currentTab)
+    render(NORMAL_LIST)
+end)
+BtnSpecial.MouseButton1Click:Connect(function()
+    currentTab = "Special"
+    setActiveTab(currentTab)
+    render(SPECIAL_LIST)
+end)
+BtnOther.MouseButton1Click:Connect(function()
+    currentTab = "Other"
+    setActiveTab(currentTab)
+    render(OTHER_LIST)
+end)
+
+-- MINIMIZE
+local minimized = false
+Minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        List.Visible = false
+        TabBar.Visible = false
+        Main.Size = UDim2.new(0, 300, 0, 30)
+    else
+        Main.Size = UDim2.new(0, 300, 0, 270)
+        TabBar.Visible = true
+        List.Visible = true
+    end
+end)
+
+-- ENTER TWEEN
+task.wait(0.4)
+Main:TweenPosition(UDim2.new(0.421999991, 0, 0.28400004, 0), "Out", "Quad", 0.4, true)
