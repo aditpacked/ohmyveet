@@ -13,23 +13,17 @@ local warpDuration = 3
 
 local farming = false
 local noclipConn
-local startTime = 0
 
--- format waktu
-local function formatTime(sec)
-    local h = math.floor(sec / 3600)
-    local m = math.floor((sec % 3600) / 60)
-    local s = sec % 60
-    return string.format("%02d:%02d:%02d", h, m, s)
-end
+-- default config
+local cpDelay = 21
+local summitDelay = 110
+local loopDelay = 5
 
--- dapatkan HRP
 local function getHRP()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     return char:WaitForChild("HumanoidRootPart")
 end
 
--- tween smooth warp
 local function smoothWarp(cf, duration)
     local hrp = getHRP()
     local tweenInfo = TweenInfo.new(duration or 2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
@@ -38,7 +32,6 @@ local function smoothWarp(cf, duration)
     tween.Completed:Wait()
 end
 
--- fire touch
 local function fireTouch(part)
     local hrp = getHRP()
     if part and part:IsA("BasePart") then
@@ -48,8 +41,16 @@ local function fireTouch(part)
     end
 end
 
--- checkpoint trigger
-local function triggerCheckpoint(i, cpStat, checkpointsFolder)
+local function countdown(seconds, label, prefix)
+    for t = seconds, 1, -1 do
+        if not farming then break end
+        label.Text = prefix.." ("..t.."s)"
+        task.wait(1)
+    end
+    label.Text = prefix
+end
+
+local function triggerCheckpoint(i, cpStat, checkpointsFolder, countdownLabel)
     local cp = checkpointsFolder:FindFirstChild("Checkpoint"..i)
     if not cp then return end
     local success = false
@@ -67,20 +68,24 @@ local function triggerCheckpoint(i, cpStat, checkpointsFolder)
             task.wait(0.5)
         end
     end
+    if i < 5 then
+        countdown(cpDelay, countdownLabel, "Delay CP"..i.."→"..(i+1))
+    else
+        countdown(summitDelay, countdownLabel, "Delay CP5→Summit")
+    end
 end
 
-local function triggerCheckpoints()
+local function triggerCheckpoints(countdownLabel)
     local leaderstats = LocalPlayer:WaitForChild("leaderstats")
     local cpStat = leaderstats:WaitForChild("Checkpoint")
     local checkpointsFolder = workspace:WaitForChild("Checkpoints")
     for i = 1, 5 do
         if cpStat.Value < i then
-            triggerCheckpoint(i, cpStat, checkpointsFolder)
+            triggerCheckpoint(i, cpStat, checkpointsFolder, countdownLabel)
         end
     end
 end
 
--- summit trigger
 local function triggerSummit()
     local leaderstats = LocalPlayer:WaitForChild("leaderstats")
     local summitStat = leaderstats:WaitForChild("Summit")
@@ -104,15 +109,12 @@ local function triggerSummit()
     return success
 end
 
--- respawn paksa
-local function respawnPlayer(resetTimer)
+local function respawnPlayer()
     task.wait(1)
     local char = LocalPlayer.Character
     if char then char:BreakJoints() end
-    resetTimer()
 end
 
--- noclip
 local function enableNoClip()
     noclipConn = RunService.Stepped:Connect(function()
         local char = LocalPlayer.Character
@@ -123,29 +125,44 @@ local function enableNoClip()
         end
     end)
 end
+
 local function disableNoClip()
     if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+end
+
+local function startFarming(updateProgress, countdownLabel)
+    farming = true
+    enableNoClip()
+    while farming do
+        smoothWarp(targetCF, warpDuration)
+        task.wait(0.5)
+        triggerCheckpoints(countdownLabel)
+        local summitOK = triggerSummit()
+        if summitOK then
+            respawnPlayer()
+        end
+        updateProgress()
+        countdown(loopDelay, countdownLabel, "Delay Loop Baru")
+    end
+    disableNoClip()
+end
+
+local function stopFarming()
+    farming = false
+    disableNoClip()
 end
 
 -- === GUI ===
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 ScreenGui.Name = "FarmingGUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-
-local BlackScreen = Instance.new("Frame", ScreenGui)
-BlackScreen.Size = UDim2.new(1, 0, 1, 0)
-BlackScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-BlackScreen.Visible = false
-BlackScreen.ZIndex = 9999
 
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 200, 0, 120)
-Frame.Position = UDim2.new(0.5, -100, 0.1, 0)
+Frame.Size = UDim2.new(0, 260, 0, 170)
+Frame.Position = UDim2.new(0.5, -130, 0.1, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.Active = true
 Frame.Draggable = true
-Frame.ZIndex = 10000
 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
 
 local Button = Instance.new("TextButton", Frame)
@@ -156,7 +173,6 @@ Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Button.Font = Enum.Font.GothamBold
 Button.TextSize = 18
-Button.ZIndex = 10000
 Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
 
 local ProgressLabel = Instance.new("TextLabel", Frame)
@@ -167,39 +183,49 @@ ProgressLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
 ProgressLabel.BackgroundTransparency = 1
 ProgressLabel.Font = Enum.Font.Gotham
 ProgressLabel.TextSize = 15
-ProgressLabel.ZIndex = 10000
 
-local TimerLabel = Instance.new("TextLabel", Frame)
-TimerLabel.Size = UDim2.new(1, -20, 0, 20)
-TimerLabel.Position = UDim2.new(0, 10, 0, 70)
-TimerLabel.Text = "Time: 00:00:00"
-TimerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-TimerLabel.BackgroundTransparency = 1
-TimerLabel.Font = Enum.Font.Gotham
-TimerLabel.TextSize = 15
-TimerLabel.ZIndex = 10000
+local CountdownLabel = Instance.new("TextLabel", Frame)
+CountdownLabel.Size = UDim2.new(1, -20, 0, 20)
+CountdownLabel.Position = UDim2.new(0, 10, 0, 70)
+CountdownLabel.Text = "Countdown: -"
+CountdownLabel.TextColor3 = Color3.fromRGB(255, 200, 150)
+CountdownLabel.BackgroundTransparency = 1
+CountdownLabel.Font = Enum.Font.Gotham
+CountdownLabel.TextSize = 15
 
--- Watermark (default hidden)
-local Watermark = Instance.new("TextLabel", ScreenGui)
-Watermark.Size = UDim2.new(1, 0, 0, 50)
-Watermark.Position = UDim2.new(0.5, 0, 0.5, 0)
-Watermark.AnchorPoint = Vector2.new(0.5, 0.5)
-Watermark.Text = "CREATED BY\n- VEET -"
-Watermark.TextColor3 = Color3.fromRGB(255, 255, 255)
-Watermark.TextTransparency = 0.15
-Watermark.Font = Enum.Font.GothamBold
-Watermark.TextSize = 28
-Watermark.BackgroundTransparency = 1
-Watermark.ZIndex = 10001
-Watermark.TextYAlignment = Enum.TextYAlignment.Center
-Watermark.Visible = false -- <<<<< disembunyikan awal
+local CPDelayBox = Instance.new("TextBox", Frame)
+CPDelayBox.Size = UDim2.new(0.3, -10, 0, 25)
+CPDelayBox.Position = UDim2.new(0, 10, 0, 100)
+CPDelayBox.PlaceholderText = "CP Delay"
+CPDelayBox.Text = tostring(cpDelay)
+CPDelayBox.TextColor3 = Color3.fromRGB(255,255,255)
+CPDelayBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+CPDelayBox.Font = Enum.Font.Gotham
+CPDelayBox.TextSize = 14
+Instance.new("UICorner", CPDelayBox).CornerRadius = UDim.new(0, 6)
 
-local stroke = Instance.new("UIStroke", Watermark)
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(255, 255, 255)
-stroke.Transparency = 0.7
+local SummitDelayBox = Instance.new("TextBox", Frame)
+SummitDelayBox.Size = UDim2.new(0.3, -10, 0, 25)
+SummitDelayBox.Position = UDim2.new(0.35, 10, 0, 100)
+SummitDelayBox.PlaceholderText = "Summit Delay"
+SummitDelayBox.Text = tostring(summitDelay)
+SummitDelayBox.TextColor3 = Color3.fromRGB(255,255,255)
+SummitDelayBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+SummitDelayBox.Font = Enum.Font.Gotham
+SummitDelayBox.TextSize = 14
+Instance.new("UICorner", SummitDelayBox).CornerRadius = UDim.new(0, 6)
 
--- update progress
+local LoopDelayBox = Instance.new("TextBox", Frame)
+LoopDelayBox.Size = UDim2.new(0.3, -10, 0, 25)
+LoopDelayBox.Position = UDim2.new(0.7, 5, 0, 100)
+LoopDelayBox.PlaceholderText = "Loop Delay"
+LoopDelayBox.Text = tostring(loopDelay)
+LoopDelayBox.TextColor3 = Color3.fromRGB(255,255,255)
+LoopDelayBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+LoopDelayBox.Font = Enum.Font.Gotham
+LoopDelayBox.TextSize = 14
+Instance.new("UICorner", LoopDelayBox).CornerRadius = UDim.new(0, 6)
+
 local function updateProgress()
     local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
     if leaderstats then
@@ -211,67 +237,24 @@ local function updateProgress()
     end
 end
 
--- reset & update timer
-local function resetTimer()
-    startTime = tick()
-    TimerLabel.Text = "Time: 00:00:00"
-end
-local function updateTimer()
-    if farming and startTime > 0 then
-        local elapsed = math.floor(tick() - startTime)
-        TimerLabel.Text = "Time: "..formatTime(elapsed)
-    end
-end
-
--- farming
-local function startFarming()
-    farming = true
-    enableNoClip()
-    BlackScreen.Visible = true
-    Watermark.Visible = true -- tampil saat farming
-    resetTimer()
-    while farming do
-        smoothWarp(targetCF, warpDuration)
-        task.wait(0.5)
-        triggerCheckpoints()
-        task.wait(0.5)
-        local summitOK = triggerSummit()
-        if summitOK then
-            respawnPlayer(resetTimer)
-        end
-        updateProgress()
-        task.wait(5)
-    end
-    disableNoClip()
-    BlackScreen.Visible = false
-    Watermark.Visible = false
-end
-
-local function stopFarming()
-    farming = false
-    disableNoClip()
-    BlackScreen.Visible = false
-    Watermark.Visible = false -- hilang saat stop
-    resetTimer()
-end
-
--- button control
 Button.MouseButton1Click:Connect(function()
     if farming then
         stopFarming()
         Button.Text = "ENABLE"
         Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     else
+        cpDelay = tonumber(CPDelayBox.Text) or 21
+        summitDelay = tonumber(SummitDelayBox.Text) or 110
+        loopDelay = tonumber(LoopDelayBox.Text) or 5
+
         Button.Text = "DISABLE"
         Button.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-        task.spawn(startFarming)
+        task.spawn(function()
+            startFarming(updateProgress, CountdownLabel)
+        end)
     end
 end)
 
--- heartbeat updater
 RunService.Heartbeat:Connect(function()
-    if farming then
-        updateProgress()
-        updateTimer()
-    end
+    if farming then updateProgress() end
 end)
