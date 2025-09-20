@@ -4,10 +4,10 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local targetCF = CFrame.new(
-    730.740051, 130.101242, -179.358292,
-    0.323141426, 3.42042483e-08, -0.946350694,
-    3.84099401e-08, 1, 4.92587908e-08,
-    0.946350694, -5.22668309e-08, 0.323141426
+    236.947098, 4.75381136, -177.751907,
+    1, 0, 0,
+    0, 1, 0,
+    0, 0, 1
 )
 local warpDuration = 3
 
