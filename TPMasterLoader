@@ -1,4 +1,4 @@
-local REQUIRED_KEY = "#$$$###&"
+local REQUIRED_KEY = "pemaidengana"
 local PREMIUM_USERS = {
     ["9wenerd"] = true,
     ["6atotkaca9"] = true,
