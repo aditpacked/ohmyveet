@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local HttpService = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
 local LocalPlayer = Players.LocalPlayer
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1423990675912921201/kQ3CKSTjhLs6DWWyA9E_GiNynuCkbvoZz3iWGVKIMYINn_pgSZaCU3o2AaFHo6nIBf_7"
@@ -11,137 +12,171 @@ local START_COINS, LAST_COINS, GUI = nil, nil, nil
 
 -- ==== HTTP detect ====
 local function Request()
-	return (syn and syn.request)
-		or (http_request)
-		or (request)
-		or (http and http.request)
+    return (syn and syn.request)
+        or (http_request)
+        or (request)
+        or (http and http.request)
 end
 
 -- ==== parse coin (K/M/B) ====
 local function parseCoins(str)
-	if not str then return 0 end
-	local s = tostring(str):gsub(",", ""):upper()
-	local mult = 1
-	if s:find("K") then mult = 1e3 end
-	if s:find("M") then mult = 1e6 end
-	if s:find("B") then mult = 1e9 end
-	local num = tonumber(s:match("[%d%.]+")) or 0
-	return math.floor(num * mult)
+    if not str then return 0 end
+    local s = tostring(str):gsub(",", ""):upper()
+    local mult = 1
+    if s:find("K") then mult = 1e3 end
+    if s:find("M") then mult = 1e6 end
+    if s:find("B") then mult = 1e9 end
+    local num = tonumber(s:match("[%d%.]+")) or 0
+    return math.floor(num * mult)
 end
 
 -- ==== cari label coin ====
 local function findLabel()
-	local pg = LocalPlayer:FindFirstChild("PlayerGui")
-	if not pg then return nil end
-	local e = pg:FindFirstChild("Events", true)
-	if not e then return nil end
-	local f = e:FindFirstChild("Frame", true)
-	if not f then return nil end
-	local c = f:FindFirstChild("CurrencyCounter", true)
-	if not c then return nil end
-	for _, d in ipairs(c:GetDescendants()) do
-		if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text and d.Text ~= "" then
-			return d
-		end
-	end
-	if c:IsA("TextLabel") then return c end
-	return nil
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local e = pg:FindFirstChild("Events", true)
+    if not e then return nil end
+    local f = e:FindFirstChild("Frame", true)
+    if not f then return nil end
+    local c = f:FindFirstChild("CurrencyCounter", true)
+    if not c then return nil end
+    for _, d in ipairs(c:GetDescendants()) do
+        if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text and d.Text ~= "" then
+            return d
+        end
+    end
+    if c:IsA("TextLabel") then return c end
+    return nil
+end
+
+-- ==== ambil FPS & Ping ====
+local function getStats()
+    local ping = 0
+    local fps = 0
+
+    local netStats = Stats:FindFirstChild("Network")
+    if netStats and netStats:FindFirstChild("ServerStatsItem") then
+        local data = netStats.ServerStatsItem:FindFirstChild("Data Ping")
+        if data then
+            ping = math.floor(tonumber(data:GetValueString():match("[%d%.]+")) or 0)
+        end
+    end
+
+    local perf = Stats:FindFirstChild("PerformanceStats")
+    if perf then
+        local fpsStat = perf:FindFirstChild("FPS")
+        if fpsStat then
+            fps = math.floor(fpsStat:GetValue())
+        end
+    end
+
+    return fps, ping
 end
 
 -- ==== GUI kecil ====
 local function makeGUI()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "FishItTracker"
-	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-	gui.ResetOnSpawn = false
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "FishItTracker"
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
 
-	local frame = Instance.new("Frame", gui)
-	frame.Size = UDim2.new(0, 200, 0, 70)
-	frame.Position = UDim2.new(1, -210, 0, 20)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	frame.BackgroundTransparency = 0.8
-	frame.BorderSizePixel = 0
-	frame.Active = true
-	frame.Draggable = true
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 200, 0, 90)
+    frame.Position = UDim2.new(1, -210, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    frame.BackgroundTransparency = 0.8
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
 
-	local title = Instance.new("TextLabel", frame)
-	title.Size = UDim2.new(1,0,0,20)
-	title.Text = "🎣 Fish It Tracker"
-	title.TextColor3 = Color3.fromRGB(255,255,255)
-	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 14
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1,0,0,20)
+    title.Text = "🎣 Fish It Tracker"
+    title.TextColor3 = Color3.fromRGB(255,255,255)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
 
-	local coins = Instance.new("TextLabel", frame)
-	coins.Size = UDim2.new(1,0,0,20)
-	coins.Position = UDim2.new(0,0,0,25)
-	coins.Text = "🪙 Coins: ..."
-	coins.TextColor3 = Color3.fromRGB(255,255,255)
-	coins.BackgroundTransparency = 1
-	coins.Font = Enum.Font.Gotham
-	coins.TextSize = 13
+    local coins = Instance.new("TextLabel", frame)
+    coins.Size = UDim2.new(1,0,0,20)
+    coins.Position = UDim2.new(0,0,0,25)
+    coins.Text = "🪙 Coins: ..."
+    coins.TextColor3 = Color3.fromRGB(255,255,255)
+    coins.BackgroundTransparency = 1
+    coins.Font = Enum.Font.Gotham
+    coins.TextSize = 13
 
-	local delta = Instance.new("TextLabel", frame)
-	delta.Size = UDim2.new(1,0,0,20)
-	delta.Position = UDim2.new(0,0,0,45)
-	delta.Text = "📈 Δ: ..."
-	delta.TextColor3 = Color3.fromRGB(255,255,255)
-	delta.BackgroundTransparency = 1
-	delta.Font = Enum.Font.Gotham
-	delta.TextSize = 13
+    local delta = Instance.new("TextLabel", frame)
+    delta.Size = UDim2.new(1,0,0,20)
+    delta.Position = UDim2.new(0,0,0,45)
+    delta.Text = "📈 Δ: ..."
+    delta.TextColor3 = Color3.fromRGB(255,255,255)
+    delta.BackgroundTransparency = 1
+    delta.Font = Enum.Font.Gotham
+    delta.TextSize = 13
 
-	return {gui=gui, coins=coins, delta=delta}
+    local stats = Instance.new("TextLabel", frame)
+    stats.Size = UDim2.new(1,0,0,20)
+    stats.Position = UDim2.new(0,0,0,65)
+    stats.Text = "🎮 FPS/Ping: ..."
+    stats.TextColor3 = Color3.fromRGB(255,255,255)
+    stats.BackgroundTransparency = 1
+    stats.Font = Enum.Font.Gotham
+    stats.TextSize = 13
+
+    return {gui=gui, coins=coins, delta=delta, stats=stats}
 end
 
 local function updateGUI(val, change)
-	if not GUI then GUI = makeGUI() end
-	GUI.coins.Text = "🪙 Coins: " .. tostring(val)
-	local prefix = change > 0 and "📈 +" or (change < 0 and "📉 " or "➖ ")
-	GUI.delta.Text = prefix .. tostring(change)
+    if not GUI then GUI = makeGUI() end
+    local fps, ping = getStats()
+    GUI.coins.Text = "🪙 Coins: " .. tostring(val)
+    local prefix = change > 0 and "📈 +" or (change < 0 and "📉 " or "➖ ")
+    GUI.delta.Text = prefix .. tostring(change)
+    GUI.stats.Text = string.format("🎮 FPS: %d | Ping: %dms", fps, ping)
 end
 
 -- ==== send ke discord ====
 local function sendWebhook(total, diff)
-	local req = Request()
-	if not req then return end
+    local req = Request()
+    if not req then return end
 
-	local color = 0x00FFFF
-	if diff > 0 then color = 0x00FF00 elseif diff < 0 then color = 0xFF0000 end
+    local fps, ping = getStats()
+    local color = 0x00FFFF
+    if diff > 0 then color = 0x00FF00 elseif diff < 0 then color = 0xFF0000 end
 
-	local info = MarketplaceService:GetProductInfo(game.PlaceId)
-	local name = info and info.Name or "Unknown"
-	local mins = math.floor((os.clock()-START_TIME)/60)
-	local avg = 0
-	if START_COINS and START_COINS > 0 then
-		avg = math.floor((total - START_COINS)/math.max(1, mins))
-	end
+    local mins = math.floor((os.clock()-START_TIME)/60)
+    local avg = 0
+    if START_COINS and START_COINS > 0 then
+        avg = math.floor((total - START_COINS)/math.max(1, mins))
+    end
 
-	local data = {
-		username = "Fish It Tracker",
-		embeds = {{
-			title = "💰 Coin Snapshot (5m)",
-			color = color,
-			fields = {
-				{ name="👤 Username", value=LocalPlayer.Name, inline=true },
-				{ name="🪙 Total Coins", value=tostring(total), inline=true },
-				{ name="📈 Perubahan", value=(diff>0 and "+"..diff or tostring(diff)), inline=true },
-				{ name="⏱ Waktu Aktif", value=tostring(mins).." menit", inline=true },
-				{ name="🌍 Map", value=name, inline=true },
-				{ name="🧩 Server ID", value=tostring(game.JobId), inline=false },
-				{ name="📊 Avg Gain", value=tostring(avg).." /m", inline=true },
-			},
-			footer = {text=os.date("%d %B %Y • %H:%M:%S")}
-		}}
-	}
+    local data = {
+        username = "Fish It Tracker",
+        embeds = {{
+            title = "💰 INGAME RECORDER",
+            color = color,
+            fields = {
+                { name="👤 Username", value=LocalPlayer.Name, inline=true },
+                { name="🪙 Total Coins", value=tostring(total), inline=true },
+                { name="📈 Perubahan", value=(diff>0 and "+"..diff or tostring(diff)), inline=true },
+                { name="⏱ Waktu Aktif", value=tostring(mins).." menit", inline=true },
+                { name="🎮 FPS", value=tostring(fps), inline=true },
+                { name="📶 Ping", value=tostring(ping).." ms", inline=true },
+                { name="📊 Avg Gain", value=tostring(avg).." /m", inline=true },
+            },
+            footer = {text=os.date("%d %B %Y • %H:%M:%S")}
+        }}
+    }
 
-	pcall(function()
-		req({
-			Url = WEBHOOK_URL,
-			Method = "POST",
-			Headers = {["Content-Type"]="application/json"},
-			Body = HttpService:JSONEncode(data)
-		})
-	end)
+    pcall(function()
+        req({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"]="application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
 end
 
 -- ==== loop utama ====
@@ -153,20 +188,20 @@ updateGUI(START_COINS,0)
 sendWebhook(START_COINS,0)
 
 task.spawn(function()
-	while task.wait(INTERVAL) do
-		label = label or findLabel()
-		if label and label.Text and label.Text ~= "" then
-			local now = parseCoins(label.Text)
-			local diff = now - LAST_COINS
-			LAST_COINS = now
-			updateGUI(now,diff)
-			sendWebhook(now,diff)
-		end
-	end
+    while task.wait(INTERVAL) do
+        label = label or findLabel()
+        if label and label.Text and label.Text ~= "" then
+            local now = parseCoins(label.Text)
+            local diff = now - LAST_COINS
+            LAST_COINS = now
+            updateGUI(now,diff)
+            sendWebhook(now,diff)
+        end
+    end
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
-	task.delay(3,function()
-		label = findLabel()
-	end)
+    task.delay(3,function()
+        label = findLabel()
+    end)
 end)
