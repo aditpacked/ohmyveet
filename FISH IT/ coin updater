@@ -5,7 +5,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1423990675912921201/kQ3CKSTjhLs6DWWyA9E_GiNynuCkbvoZz3iWGVKIMYINn_pgSZaCU3o2AaFHo6nIBf_7"
 
--- kirim setiap 15 menit (900 detik)
+-- interval 15 menit
 local INTERVAL = 900
 local START_TIME = os.clock()
 local START_COINS, LAST_COINS, START_CAUGHT, LAST_CAUGHT, GUI = nil, nil, nil, nil, nil
@@ -63,7 +63,7 @@ local function getCaught()
 	return 0
 end
 
--- ==== ambil FPS & Ping (aman untuk Delta) ====
+-- ==== ambil FPS & Ping ====
 local function getStats()
 	local ping = math.random(30,80)
 	local fps = math.floor(1 / game:GetService("RunService").RenderStepped:Wait())
@@ -113,9 +113,9 @@ local function updateGUI(coinsNow, coinsDiff, caughtNow, caughtDiff)
 	if not GUI then GUI = makeGUI() end
 	local fps, ping = getStats()
 	GUI.coins.Text = "🪙 Coins: " .. coinsNow
-	GUI.dcoins.Text = "📈 Δ Coins: " .. (coinsDiff>=0 and "+" or "") .. coinsDiff
+	GUI.dcoins.Text = "📈 Δ Coins: " .. (coinsDiff ~= 0 and ((coinsDiff>=0 and "+") or "") .. coinsDiff or "–")
 	GUI.caught.Text = "🐟 Caught: " .. caughtNow
-	GUI.dcaught.Text = "📊 Δ Caught: " .. (caughtDiff>=0 and "+" or "") .. caughtDiff
+	GUI.dcaught.Text = "📊 Δ Caught: " .. (caughtDiff ~= 0 and ((caughtDiff>=0 and "+") or "") .. caughtDiff or "–")
 	GUI.stats.Text = string.format("🎮 FPS: %d | Ping: %dms", fps, ping)
 end
 
@@ -155,7 +155,6 @@ local function sendWebhook(totalCoins, coinDiff, totalCaught, caughtDiff)
 	}
 
 	local payload = {Url=WEBHOOK_URL, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode(data)}
-
 	pcall(function()
 		if req == HttpService.RequestAsync then
 			HttpService:RequestAsync(payload)
@@ -187,12 +186,14 @@ task.spawn(function()
 			local coinDiff = nowCoins - LAST_COINS
 			local caughtDiff = nowCaught - LAST_CAUGHT
 			updateGUI(nowCoins, coinDiff, nowCaught, caughtDiff)
+
+			-- 🔧 pindah update nilai lama ke dalam blok interval!
 			if TIME_ACCUM >= INTERVAL then
 				sendWebhook(nowCoins, coinDiff, nowCaught, caughtDiff)
+				LAST_COINS = nowCoins
+				LAST_CAUGHT = nowCaught
 				TIME_ACCUM = 0
 			end
-			LAST_COINS = nowCoins
-			LAST_CAUGHT = nowCaught
 		end
 	end
 end)
