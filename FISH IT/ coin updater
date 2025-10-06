@@ -5,165 +5,165 @@ local LocalPlayer = Players.LocalPlayer
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1423990675912921201/kQ3CKSTjhLs6DWWyA9E_GiNynuCkbvoZz3iWGVKIMYINn_pgSZaCU3o2AaFHo6nIBf_7"
 
--- ganti interval kirim ke discord jadi 30 detik (buat test)
-local INTERVAL = 30
+-- kirim setiap 15 menit (900 detik)
+local INTERVAL = 900
 local START_TIME = os.clock()
 local START_COINS, LAST_COINS, START_CAUGHT, LAST_CAUGHT, GUI = nil, nil, nil, nil, nil
 local TIME_ACCUM = 0
 
 -- ==== HTTP detect ====
 local function Request()
-    return (syn and syn.request)
-        or (http_request)
-        or (request)
-        or (http and http.request)
-        or HttpService.RequestAsync
+	return (syn and syn.request)
+		or (http_request)
+		or (request)
+		or (http and http.request)
+		or HttpService.RequestAsync
 end
 
 -- ==== parse coin (K/M/B) ====
 local function parseCoins(str)
-    if not str then return 0 end
-    local s = tostring(str):gsub(",", ""):upper()
-    local mult = 1
-    if s:find("K") then mult = 1e3 end
-    if s:find("M") then mult = 1e6 end
-    if s:find("B") then mult = 1e9 end
-    local num = tonumber(s:match("[%d%.]+")) or 0
-    return math.floor(num * mult)
+	if not str then return 0 end
+	local s = tostring(str):gsub(",", ""):upper()
+	local mult = 1
+	if s:find("K") then mult = 1e3 end
+	if s:find("M") then mult = 1e6 end
+	if s:find("B") then mult = 1e9 end
+	local num = tonumber(s:match("[%d%.]+")) or 0
+	return math.floor(num * mult)
 end
 
 -- ==== cari label coin ====
 local function findLabel()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then return nil end
-    local e = pg:FindFirstChild("Events", true)
-    if not e then return nil end
-    local f = e:FindFirstChild("Frame", true)
-    if not f then return nil end
-    local c = f:FindFirstChild("CurrencyCounter", true)
-    if not c then return nil end
-    for _, d in ipairs(c:GetDescendants()) do
-        if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text and d.Text ~= "" then
-            return d
-        end
-    end
-    if c:IsA("TextLabel") then return c end
-    return nil
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then return nil end
+	local e = pg:FindFirstChild("Events", true)
+	if not e then return nil end
+	local f = e:FindFirstChild("Frame", true)
+	if not f then return nil end
+	local c = f:FindFirstChild("CurrencyCounter", true)
+	if not c then return nil end
+	for _, d in ipairs(c:GetDescendants()) do
+		if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text and d.Text ~= "" then
+			return d
+		end
+	end
+	if c:IsA("TextLabel") then return c end
+	return nil
 end
 
 -- ==== ambil jumlah Caught dari leaderboard ====
 local function getCaught()
-    local stats = LocalPlayer:FindFirstChild("leaderstats")
-    if not stats then return 0 end
-    for _, v in ipairs(stats:GetChildren()) do
-        if v:IsA("IntValue") and string.lower(v.Name):find("caught") then
-            return v.Value
-        end
-    end
-    return 0
+	local stats = LocalPlayer:FindFirstChild("leaderstats")
+	if not stats then return 0 end
+	for _, v in ipairs(stats:GetChildren()) do
+		if v:IsA("IntValue") and string.lower(v.Name):find("caught") then
+			return v.Value
+		end
+	end
+	return 0
 end
 
 -- ==== ambil FPS & Ping (aman untuk Delta) ====
 local function getStats()
-    local ping = math.random(30,80)
-    local fps = math.floor(1 / game:GetService("RunService").RenderStepped:Wait())
-    return fps, ping
+	local ping = math.random(30,80)
+	local fps = math.floor(1 / game:GetService("RunService").RenderStepped:Wait())
+	return fps, ping
 end
 
 -- ==== GUI kecil ====
 local function makeGUI()
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "FishItRecorder"
-    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    gui.ResetOnSpawn = false
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "FishItRecorder"
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	gui.ResetOnSpawn = false
 
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 210, 0, 130)
-    frame.Position = UDim2.new(1, -220, 0, 20)
-    frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    frame.BackgroundTransparency = 0.8
-    frame.Active = true
-    frame.Draggable = true
+	local frame = Instance.new("Frame", gui)
+	frame.Size = UDim2.new(0, 210, 0, 130)
+	frame.Position = UDim2.new(1, -220, 0, 20)
+	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.BackgroundTransparency = 0.8
+	frame.Active = true
+	frame.Draggable = true
 
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1,0,0,20)
-    title.Text = "🔊 In-game Recorder"
-    title.TextColor3 = Color3.fromRGB(255,255,255)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
+	local title = Instance.new("TextLabel", frame)
+	title.Size = UDim2.new(1,0,0,20)
+	title.Text = "🔊 In-game Recorder"
+	title.TextColor3 = Color3.fromRGB(255,255,255)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 14
 
-    local lines = {}
-    local names = {"🪙 Coins","📈 Δ Coins","🐟 Caught","📊 Δ Caught","🎮 FPS / Ping"}
-    for i, name in ipairs(names) do
-        local label = Instance.new("TextLabel", frame)
-        label.Size = UDim2.new(1,0,0,20)
-        label.Position = UDim2.new(0,0,0,20 + (i*20))
-        label.Text = name..": ..."
-        label.TextColor3 = Color3.fromRGB(255,255,255)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 13
-        lines[i] = label
-    end
-    return {gui=gui, coins=lines[1], dcoins=lines[2], caught=lines[3], dcaught=lines[4], stats=lines[5]}
+	local lines = {}
+	local names = {"🪙 Coins","📈 Δ Coins","🐟 Caught","📊 Δ Caught","🎮 FPS / Ping"}
+	for i, name in ipairs(names) do
+		local label = Instance.new("TextLabel", frame)
+		label.Size = UDim2.new(1,0,0,20)
+		label.Position = UDim2.new(0,0,0,20 + (i*20))
+		label.Text = name..": ..."
+		label.TextColor3 = Color3.fromRGB(255,255,255)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.Gotham
+		label.TextSize = 13
+		lines[i] = label
+	end
+	return {gui=gui, coins=lines[1], dcoins=lines[2], caught=lines[3], dcaught=lines[4], stats=lines[5]}
 end
 
 local function updateGUI(coinsNow, coinsDiff, caughtNow, caughtDiff)
-    if not GUI then GUI = makeGUI() end
-    local fps, ping = getStats()
-    GUI.coins.Text = "🪙 Coins: " .. coinsNow
-    GUI.dcoins.Text = "📈 Δ Coins: " .. (coinsDiff>=0 and "+" or "") .. coinsDiff
-    GUI.caught.Text = "🐟 Caught: " .. caughtNow
-    GUI.dcaught.Text = "📊 Δ Caught: " .. (caughtDiff>=0 and "+" or "") .. caughtDiff
-    GUI.stats.Text = string.format("🎮 FPS: %d | Ping: %dms", fps, ping)
+	if not GUI then GUI = makeGUI() end
+	local fps, ping = getStats()
+	GUI.coins.Text = "🪙 Coins: " .. coinsNow
+	GUI.dcoins.Text = "📈 Δ Coins: " .. (coinsDiff>=0 and "+" or "") .. coinsDiff
+	GUI.caught.Text = "🐟 Caught: " .. caughtNow
+	GUI.dcaught.Text = "📊 Δ Caught: " .. (caughtDiff>=0 and "+" or "") .. caughtDiff
+	GUI.stats.Text = string.format("🎮 FPS: %d | Ping: %dms", fps, ping)
 end
 
 -- ==== kirim ke Discord ====
 local function sendWebhook(totalCoins, coinDiff, totalCaught, caughtDiff)
-    local req = Request()
-    if not req then warn("❌ Executor tidak support HTTP Request!") return end
+	local req = Request()
+	if not req then warn("❌ Executor tidak support HTTP Request!") return end
 
-    local fps, ping = getStats()
-    local color = 0x00FFFF
-    if coinDiff > 0 then color = 0x00FF00 elseif coinDiff < 0 then color = 0xFF0000 end
+	local fps, ping = getStats()
+	local color = 0x00FFFF
+	if coinDiff > 0 then color = 0x00FF00 elseif coinDiff < 0 then color = 0xFF0000 end
 
-    local mins = math.floor((os.clock()-START_TIME)/60)
-    local avg = 0
-    if START_COINS and START_COINS > 0 then
-        avg = math.floor((totalCoins - START_COINS)/math.max(1, mins))
-    end
+	local mins = math.floor((os.clock()-START_TIME)/60)
+	local avg = 0
+	if START_COINS and START_COINS > 0 then
+		avg = math.floor((totalCoins - START_COINS)/math.max(1, mins))
+	end
 
-    local data = {
-        username = "Fish It Recorder",
-        embeds = {{
-            title = "🔊 In-game Recorder (TEST 30s)",
-            color = color,
-            fields = {
-                { name="👤 Username", value=LocalPlayer.Name, inline=true },
-                { name="🪙 Total Coins", value=tostring(totalCoins), inline=true },
-                { name="📈 Δ Coins", value=(coinDiff>=0 and "+"..coinDiff or tostring(coinDiff)), inline=true },
-                { name="🐟 Caught", value=tostring(totalCaught), inline=true },
-                { name="📊 Δ Caught", value=(caughtDiff>=0 and "+"..caughtDiff or tostring(caughtDiff)), inline=true },
-                { name="🎮 FPS", value=tostring(fps), inline=true },
-                { name="📶 Ping", value=tostring(ping).." ms", inline=true },
-                { name="⏱ Aktif", value=tostring(mins).." mnt", inline=true },
-                { name="📊 Avg Gain", value=tostring(avg).." /m", inline=true },
-            },
-            footer = {text=os.date("%d %B %Y • %H:%M:%S")}
-        }}
-    }
+	local data = {
+		username = "Fish It Recorder",
+		embeds = {{
+			title = "🔊 In-game Recorder",
+			color = color,
+			fields = {
+				{ name="👤 Username", value=LocalPlayer.Name, inline=true },
+				{ name="🪙 Total Coins", value=tostring(totalCoins), inline=true },
+				{ name="📈 Δ Coins", value=(coinDiff>=0 and "+"..coinDiff or tostring(coinDiff)), inline=true },
+				{ name="🐟 Caught", value=tostring(totalCaught), inline=true },
+				{ name="📊 Δ Caught", value=(caughtDiff>=0 and "+"..caughtDiff or tostring(caughtDiff)), inline=true },
+				{ name="🎮 FPS", value=tostring(fps), inline=true },
+				{ name="📶 Ping", value=tostring(ping).." ms", inline=true },
+				{ name="⏱ Aktif", value=tostring(mins).." mnt", inline=true },
+				{ name="📊 Avg Gain", value=tostring(avg).." /m", inline=true },
+			},
+			footer = {text=os.date("%d %B %Y • %H:%M:%S")}
+		}}
+	}
 
-    local payload = {Url=WEBHOOK_URL, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode(data)}
+	local payload = {Url=WEBHOOK_URL, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode(data)}
 
-    pcall(function()
-        if req == HttpService.RequestAsync then
-            HttpService:RequestAsync(payload)
-        else
-            req(payload)
-        end
-    end)
-    print("✅ Sent webhook to Discord")
+	pcall(function()
+		if req == HttpService.RequestAsync then
+			HttpService:RequestAsync(payload)
+		else
+			req(payload)
+		end
+	end)
+	print("✅ Sent webhook to Discord")
 end
 
 -- ==== LOOP ====
@@ -178,25 +178,25 @@ updateGUI(START_COINS,0,START_CAUGHT,0)
 sendWebhook(START_COINS,0,START_CAUGHT,0)
 
 task.spawn(function()
-    while task.wait(1) do
-        TIME_ACCUM += 1
-        label = label or findLabel()
-        if label and label.Text and label.Text ~= "" then
-            local nowCoins = parseCoins(label.Text)
-            local nowCaught = getCaught()
-            local coinDiff = nowCoins - LAST_COINS
-            local caughtDiff = nowCaught - LAST_CAUGHT
-            updateGUI(nowCoins, coinDiff, nowCaught, caughtDiff)
-            if TIME_ACCUM >= INTERVAL then
-                sendWebhook(nowCoins, coinDiff, nowCaught, caughtDiff)
-                TIME_ACCUM = 0
-            end
-            LAST_COINS = nowCoins
-            LAST_CAUGHT = nowCaught
-        end
-    end
+	while task.wait(1) do
+		TIME_ACCUM += 1
+		label = label or findLabel()
+		if label and label.Text and label.Text ~= "" then
+			local nowCoins = parseCoins(label.Text)
+			local nowCaught = getCaught()
+			local coinDiff = nowCoins - LAST_COINS
+			local caughtDiff = nowCaught - LAST_CAUGHT
+			updateGUI(nowCoins, coinDiff, nowCaught, caughtDiff)
+			if TIME_ACCUM >= INTERVAL then
+				sendWebhook(nowCoins, coinDiff, nowCaught, caughtDiff)
+				TIME_ACCUM = 0
+			end
+			LAST_COINS = nowCoins
+			LAST_CAUGHT = nowCaught
+		end
+	end
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
-    task.delay(3,function() label = findLabel() end)
+	task.delay(3,function() label = findLabel() end)
 end)
